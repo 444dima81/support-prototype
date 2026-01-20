@@ -40,6 +40,16 @@ def is_trivial(msg: str) -> bool:
         "спасибо", "спасибо!", "ок", "окей", "понял", "поняла", "ясно"
     }
 
+def mentions_birthday(msg: str) -> bool:
+    s = msg.lower()
+    return any(k in s for k in [
+        "день рождения",
+        "др",
+        "дню рождения",
+        "мой праздник",
+        "сегодня праздник",
+    ])
+
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
@@ -92,7 +102,7 @@ def chat(req: ChatRequest):
     # обычный RAG
     # сценарий ДР — только на первом сообщении в новом conversation_id
     scenario_context = ""
-    if not st.scenario_ran:
+    if not st.scenario_ran and mentions_birthday(req.message):
         res = scenario_runner.run_first_message(req.message)
         st.scenario_ran = True
         st.last_step_scenario = res.last_step_scenario
