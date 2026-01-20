@@ -72,3 +72,9 @@ python -m scripts.ingest_qdrant # Загрузка в Qdrant
 адрес по умолчанию
 `http://localhost:8000`
 
+## Пример запроса
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"conversation_id":"c1","message":"Подскажите пожалуйста, есть ли у меня аннулированные чеки?"}' | jq
+```
