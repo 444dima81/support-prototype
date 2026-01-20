@@ -20,6 +20,39 @@
 - **RAG** — поиск по базе знаний
 - **Scenario Runner** — JSON-сценарий с `tool / if / text / end`
 
+## 📁 Структура проекта
+
+```text
+app/
+├── llm/
+│   ├── __init__.py
+│   ├── client.py        # LLM-клиент (Qwen3)
+│   └── embeddings.py    # Клиент для получения эмбеддингов
+│
+├── parser/
+│   ├── __init__.py
+│   ├── kb_html.py       # Парсинг HTML-файла базы знаний
+│   └── chunker.py       # Разбиение документов на чанки
+│
+├── rag/
+│   ├── __init__.py
+│   ├── retriever.py     # Поиск релевантных чанков в Qdrant
+│   └── answer.py        # Генерация ответа на основе чанков и контекста
+│
+├── scenario/
+│   ├── __init__.py
+│   ├── runner.py        # Движок сценария «Начисление бонусов ко дню рождения»
+│   └── tools.py         # Tools (get_user_data — stub)
+│
+├── main.py              # FastAPI-приложение и endpoint POST /chat
+└── memory.py            # In-memory память диалога и summary
+│
+data/
+└── test.html             # Пример базы знаний (HTML)
+│
+scripts/
+└── export_kb_chunks.py  # Утилита для генерации чанков (часть пайплайна RAG)
+```
 ---
 
 ## ⚙️ Требования
