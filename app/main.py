@@ -4,12 +4,14 @@ from pydantic import BaseModel, Field
 from app.rag.retriever import Retriever
 from app.rag.answer import generate_answer
 from app.memory import MemoryStore
+from app.scenario.runner import ScenarioRunner
 
 
 app = FastAPI(title="Support Prototype")
 
 retriever = Retriever()
 memory = MemoryStore(max_history=20)
+scenario_runner = ScenarioRunner(scenario_path="data/test_scenario.json")
 
 
 class ChatRequest(BaseModel):
@@ -33,6 +35,11 @@ def is_what_are_we_talking(msg: str) -> bool:
     s = msg.lower().strip()
     return "о чем мы" in s or "о чём мы" in s or s in {"о чем мы общаемся?", "о чем мы общаемся"}
 
+def is_trivial(msg: str) -> bool:
+    return msg.lower().strip() in {
+        "спасибо", "спасибо!", "ок", "окей", "понял", "поняла", "ясно"
+    }
+
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
@@ -55,7 +62,7 @@ def chat(req: ChatRequest):
             chunks=[],
             last_step_scenario=st.last_step_scenario,
         )
-
+    
     if is_what_are_we_talking(req.message):
         # summary всегда существует/обновляется
         if not st.summary:
@@ -69,11 +76,31 @@ def chat(req: ChatRequest):
             chunks=[],
             last_step_scenario=st.last_step_scenario,
         )
+    
+    if is_trivial(req.message):
+        answer = "Пожалуйста! Если появятся вопросы — обращайтесь."
+        memory.add_assistant(req.conversation_id, answer)
+        memory.update_summary(req.conversation_id)
+        return ChatResponse(
+            conversation_id=req.conversation_id,
+            answer=answer,
+            chunks=[],
+            last_step_scenario=st.last_step_scenario,
+        )
+    
+
+    # обычный RAG
+    # сценарий ДР — только на первом сообщении в новом conversation_id
+    scenario_context = ""
+    if not st.scenario_ran:
+        res = scenario_runner.run_first_message(req.message)
+        st.scenario_ran = True
+        st.last_step_scenario = res.last_step_scenario
+        scenario_context = res.context_text
 
     # обычный RAG
     chunks = retriever.retrieve(req.message, top_k=5, min_score=0.25)
-    answer = generate_answer(req.message, chunks)
-
+    answer = generate_answer(req.message, chunks, extra_context=scenario_context)
     memory.add_assistant(req.conversation_id, answer)
     memory.update_summary(req.conversation_id)
 
