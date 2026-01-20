@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from app.client.llm import LLMClient
+from app.llm.client import LLMClient
 
 load_dotenv()
 
